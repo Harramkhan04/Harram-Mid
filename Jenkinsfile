@@ -22,6 +22,7 @@ pipeline {
         checkout scm
         script {
           env.GIT_SHA = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
+          env.COMMIT_BY = sh(script: 'git log -1 --format="%an <%ae>"', returnStdout: true).trim()
         }
         echo "Building commit ${env.GIT_SHA}"
       }
@@ -89,13 +90,19 @@ pipeline {
     always {
       script {
         def metrics = fileExists('metrics_out.json') ? readFile('metrics_out.json') : 'Metrics not available (build failed before verify).'
+        // If I (the student) made the commit, only I get the email.
+        // Any other commit (the instructor's autograder) also emails the instructor.
+        def byStudent = (env.COMMIT_BY ?: '').toLowerCase().contains('harram')
+        def recipients = byStudent ? 'harrammansoorkhan11@gmail.com'
+                                   : 'qasimalik@gmail.com, cc:harrammansoorkhan11@gmail.com'
         emailext(
-          from: 'harrammansoorkhan@gmail.com',
-          to: 'qasimalik@gmail.com, cc:harrammansoorkhan@gmail.com',
+          from: 'harrammansoorkhan11@gmail.com',
+          to: recipients,
           subject: "FA23-BDS-014 - Build ${currentBuild.currentResult} #${env.BUILD_NUMBER}",
           body: """Reg No: FA23-BDS-014
 Result: ${currentBuild.currentResult}
 Commit: ${env.GIT_SHA}
+Pushed by: ${env.COMMIT_BY}
 Build: ${env.BUILD_URL}
 
 /metrics output:
