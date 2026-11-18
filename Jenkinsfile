@@ -11,7 +11,7 @@ pipeline {
 
   environment {
     REG_NO    = 'FA23-BDS-014'
-    IMAGE     = 'midterm-app'
+    IMAGE     = 'midterm-fa23-bds-014'
     CONTAINER = 'midterm-app'
   }
 
@@ -48,7 +48,10 @@ pipeline {
 
     stage('Build Docker Image') {
       steps {
-        sh 'docker build --build-arg GIT_COMMIT=$GIT_SHA -t $IMAGE:latest -t $IMAGE:${GIT_SHA} .'
+        sh '''
+          docker rmi -f $IMAGE:latest || true
+          docker build --no-cache --build-arg GIT_COMMIT=$GIT_SHA -t $IMAGE:latest .
+        '''
       }
     }
 
@@ -88,8 +91,7 @@ pipeline {
         def metrics = fileExists('metrics_out.json') ? readFile('metrics_out.json') : 'Metrics not available (build failed before verify).'
         emailext(
           from: 'harrammansoorkhan@gmail.com',
-          to: 'qasimalik@gmail.com',
-          cc: 'harrammansoorkhan@gmail.com',
+          to: 'qasimalik@gmail.com, cc:harrammansoorkhan@gmail.com',
           subject: "FA23-BDS-014 - Build ${currentBuild.currentResult} #${env.BUILD_NUMBER}",
           body: """Reg No: FA23-BDS-014
 Result: ${currentBuild.currentResult}
